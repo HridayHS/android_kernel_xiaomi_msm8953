@@ -684,20 +684,9 @@ void msm_isp_process_reg_upd_epoch_irq(struct vfe_device *vfe_dev,
 			break;
 		case MSM_ISP_COMP_IRQ_EPOCH:
 			if (stream_info->state == ACTIVE) {
-				struct vfe_device *temp = NULL;
-				struct msm_vfe_common_dev_data *c_data;
-				uint32_t drop_reconfig =
-					vfe_dev->isp_page->drop_reconfig;
-				if (stream_info->num_isp > 1 &&
-					vfe_dev->pdev->id == ISP_VFE0) {
-					c_data = vfe_dev->common_data;
-					temp = c_data->dual_vfe_res->vfe_dev[
-						ISP_VFE1];
-					drop_reconfig =
-						temp->isp_page->drop_reconfig;
-				}
 				msm_isp_update_framedrop_reg(stream_info,
-					drop_reconfig);
+					vfe_dev->common_data->drop_reconfig);
+				vfe_dev->common_data->drop_reconfig = 0;
 			}
 			break;
 		default:
@@ -2509,7 +2498,6 @@ static void msm_isp_input_enable(struct vfe_device *vfe_dev,
 			continue;
 		/* activate the input since it is deactivated */
 		axi_data->src_info[i].frame_id = 0;
-		vfe_dev->irq_sof_id = 0;
 		if (axi_data->src_info[i].input_mux != EXTERNAL_READ)
 			axi_data->src_info[i].active = 1;
 		if (i >= VFE_RAW_0 && sync_frame_id_src) {
@@ -3127,6 +3115,7 @@ static void __msm_isp_stop_axi_streams(struct vfe_device *vfe_dev,
 		msm_isp_cfg_stream_scratch(stream_info, VFE_PING_FLAG);
 		msm_isp_cfg_stream_scratch(stream_info, VFE_PONG_FLAG);
 		stream_info->undelivered_request_cnt = 0;
+		vfe_dev->irq_sof_id = 0;
 		if (stream_info->controllable_output &&
 			stream_info->pending_buf_info.is_buf_done_pending) {
 			msm_isp_free_pending_buffer(vfe_dev, stream_info,
